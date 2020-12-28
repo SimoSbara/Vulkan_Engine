@@ -7,12 +7,13 @@
 #include <glm/mat4x4.hpp>
 
 #include <iostream>
+#include <vector>
+#include <string>
 
 class TriangleApplication {
 public:
     void run() {
-        if(!initVulkan())
-            return;
+        initVulkan();
         mainLoop();
         cleanup();
     }
@@ -21,10 +22,49 @@ private:
     
     GLFWwindow* window;
     VkInstance instance;
-#define WIDTH  400
-#define HEIGHT 200
+    const int WIDTH = 400;
+    const int HEIGHT = 200;
     
-    int createInstance() {
+    const std::vector<const char*> validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
+
+    #ifdef NDEBUG
+        const bool enableValidationLayers = false;
+    #else
+        const bool enableValidationLayers = true;
+    #endif
+    
+    bool checkValidationLayerSupport() {
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        return false;
+    }
+    
+    std::vector<const char*> getRequiredExtensions() {
+        uint32_t glfwExtensionCount = 0;
+        const char** glfwExtensions;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+        if (enableValidationLayers) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
+        return extensions;
+    }
+    
+    void createInstance() {
+        
+        if (enableValidationLayers && !checkValidationLayerSupport()) {
+            throw std::runtime_error("validation layers requested, but not available!");
+        }
+        
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello Triangle";
@@ -42,25 +82,33 @@ private:
 
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        createInfo.enabledExtensionCount = glfwExtensionCount;
-        createInfo.ppEnabledExtensionNames = glfwExtensions;
+        auto extensions = getRequiredExtensions();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        createInfo.ppEnabledExtensionNames = extensions.data();
         
-        createInfo.enabledLayerCount = 0;
+        //createInfo.enabledExtensionCount = glfwExtensionCount;
+        //createInfo.ppEnabledExtensionNames = glfwExtensions;
         
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+        if (enableValidationLayers) {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+        } else {
+            createInfo.enabledLayerCount = 0;
+        }
         
-        return (result == VK_SUCCESS) ? 1 : 0;
+        //createInfo.enabledLayerCount = 0;
+                
+        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create instance!");
+        }
     }
     
     
     int initVulkan() {
-        glfwInit();
         
-        if(!createInstance())
-        {
-            cleanup(0);
-            return 0;
-        }
+        
+        glfwInit();
+        createInstance();
         
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -76,9 +124,8 @@ private:
         }
     }
 
-    void cleanup(int success = 1) {
-        if(success)
-            vkDestroyInstance(instance, nullptr);
+    void cleanup() {
+        vkDestroyInstance(instance, nullptr);
         
         glfwDestroyWindow(this->window);
 
