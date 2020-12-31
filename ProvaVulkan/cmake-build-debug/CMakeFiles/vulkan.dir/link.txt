@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/vulkan.dir/main.cpp.o  -o vulkan  -Wl,-rpath,/Users/simone/Desktop/Vulkan_Engine/ProvaVulkan/Vulkan/MacOS/lib ../Vulkan/MacOS/lib/libvulkan.1.2.162.dylib /usr/local/lib/libglfw.3.3.dylib ../Vulkan/MacOS/lib/libvulkan.1.2.162.dylib /usr/local/lib/libglfw.3.3.dylib 
